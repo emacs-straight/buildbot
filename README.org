@@ -1,0 +1,64 @@
+#+title: buildbot.el
+#+author: Yuchen Pei
+#+language: en
+
+[[https://www.buildbot.net/][Buildbot]] is a free software continuous integration tool. buildbot.el
+is an emacs interface to view build information on a Buildbot
+instance. It supports newer versions of Buildbot (e.g. 3.x) but not
+older versions (e.g. 0.8.9) and shows views for branches, revisions,
+builds, steps, logs and builders.
+
+* Install
+
+** Manual install
+   :PROPERTIES:
+   :UPDATED:  [2023-06-26 Mon 16:44]
+   :END:
+
+Clone this repo, and add to load path (assuming you clone to
+~~/.emacs.d~):
+
+#+begin_src sh
+cd ~/.emacs.d
+git clone https://g.ypei.me/buildbot.el.git
+#+end_src
+
+#+begin_src elisp
+(add-to-list 'load-path "~/.emacs.d/buildbot.el")
+#+end_src
+
+After that, require buildbot and set the host and builders, like so
+
+#+begin_src elisp
+(require 'buildbot)
+(setq buildbot-host "https://buildbot.mariadb.org")
+(setq buildbot-builders (buildbot-get-all-builders))
+#+end_src
+
+* Use
+
+Entry points:
+- ~M-x buildbot-revision-open~ prompts for a revision id (e.g. commit
+  hash in git), and opens a view of the revision, including builds
+  associated with changes associated with the revision.
+- ~M-x buildbot-branch-open~ prompts for a branch name, and opens up a
+  view of revisions of this branch.
+- ~M-x buildbot-builder-open~ prompts for a builder name from a list
+  of available builders, and opens up a view of recent builds by this
+  builder.
+
+* TODOs
+  :PROPERTIES:
+  :UPDATED:  [2023-06-26 Mon 17:04]
+  :END:
+
+- org link integration.
+- older buildbot api (not really sure if feasible)
+- copy url of the current view
+- highlight certain builders (e.g. mandatory for push)
+
+* Contact and Copyright
+
+~buildbot.el~ is maintained by Yuchen Pei <id@ypei.org> and covered by
+[[https://www.gnu.org/licenses/agpl-3.0.en.html][GNU AGPLv3+]].  You may find the license text in a file named
+COPYING.agpl3 in the project tree.
