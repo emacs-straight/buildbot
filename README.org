@@ -4,19 +4,41 @@
 
 [[https://www.buildbot.net/][Buildbot]] is a free software continuous integration tool. buildbot.el
 is an emacs interface to view build information on a Buildbot
-instance. It supports newer versions of Buildbot (e.g. 3.x) but not
-older versions (e.g. 0.8.9) and shows views for branches, revisions,
+instance. It supports [[https://docs.buildbot.net/latest/relnotes/0.9.0.html][newer versions]]* of Buildbot (>=0.9.0) but not
+older versions (<0.9.0) and shows views for branches, revisions,
 builds, steps, logs and builders.
+
+It has been tested for the following instances:
+- [[https://buildbot.mariadb.org][mariadb]]
+- [[https://buildbot.python.org/all][python]]
+- [[https://buildbot.buildbot.net][buildbot]]
+
+*: The linked release notes describes the significant changes at
+0.9.0.
 
 * Install
 
+** From ELPA
+   :PROPERTIES:
+   :UPDATED:  [2023-07-15 Sat 16:16]
+   :END:
+
+Buildbot is currently available at elpa-devel:
+
+#+begin_src elisp
+(add-to-list 'package-archives
+             ("elpa-devel" . "https://elpa.gnu.org/devel/"))
+(package-refresh-contents)
+(package-install 'buildbot)
+#+end_src
+
 ** Manual install
    :PROPERTIES:
-   :UPDATED:  [2023-06-26 Mon 16:44]
+   :UPDATED:  [2023-07-15 Sat 16:24]
    :END:
 
 Clone this repo, and add to load path (assuming you clone to
-~~/.emacs.d~):
+=~/.emacs.d=):
 
 #+begin_src sh
 cd ~/.emacs.d
@@ -31,11 +53,13 @@ After that, require buildbot and set the host and builders, like so
 
 #+begin_src elisp
 (require 'buildbot)
-(setq buildbot-host "https://buildbot.mariadb.org")
-(setq buildbot-builders (buildbot-get-all-builders))
+(setq buildbot-default-host "https://buildbot.mariadb.org")
 #+end_src
 
 * Use
+  :PROPERTIES:
+  :UPDATED:  [2023-07-15 Sat 16:38]
+  :END:
 
 Entry points:
 - ~M-x buildbot-revision-open~ prompts for a revision id (e.g. commit
@@ -46,6 +70,9 @@ Entry points:
 - ~M-x buildbot-builder-open~ prompts for a builder name from a list
   of available builders, and opens up a view of recent builds by this
   builder.
+- The first time any of these commands is invoked it may take a bit
+  longer than usual because it needs to make an extra call to get all
+  builders.
 
 * TODOs
   :PROPERTIES:

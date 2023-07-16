@@ -170,15 +170,17 @@ The changes should be of the same revision."
   (let* ((first-change (elt changes 0))
          (revision-info (buildbot-get-revision-info-from-change first-change))
          (changes-info
-          (mapcar (lambda (change)
-                    (list
-                     (assq 'branch change)
-                     (assq 'builds change)
-                     (cons 'build-stats
-                           (buildbot-get-build-stats
-                            (alist-get 'builds change)))
-                     (assq 'revision first-change)))
-                  changes)))
+          (mapcar
+           (lambda (change)
+             (append
+              (list
+               (assq 'branch change)
+               (assq 'builds change)
+               (assq 'revision first-change))
+              (when-let ((builds (assq 'builds change)))
+                `((build-stats . ,(buildbot-get-build-stats
+                                   (cdr builds)))))))
+           changes)))
     `((revision-info . ,revision-info) (changes-info . ,changes-info))))
 
 (provide 'buildbot-utils)

@@ -30,7 +30,8 @@
 (require 'buildbot-client)
 (require 'text-property-search)
 
-(defvar buildbot-view-header-regex "^\\[.*\\]$")
+(defvar buildbot-view-header-regex "^\\[.*\\]$"
+  "The header regex in a Buildbot buffer.")
 (defvar buildbot-view-branch-change-limit 10)
 (defvar buildbot-view-builder-build-limit 50)
 ;; 'revision, 'build, 'step, or 'log
@@ -51,7 +52,13 @@
   "Keymap for `buildbot-view-mode'.")
 
 (define-derived-mode buildbot-view-mode special-mode "Buildbot"
-  "A Buildbot client for Emacs.")
+  "A Buildbot client for Emacs."
+  (setq-local imenu-generic-expression
+	            (list (list nil
+                          (format "^\\(?:%s\\).*$"
+                                  buildbot-view-header-regex)
+                          0))
+              imenu-space-replacement nil))
 
 (defun buildbot-view-next-header (n)
   "Move forward N headers."
@@ -121,10 +128,12 @@
 
 (defun buildbot-view-format-build-stats (stats)
   "Format build STATS in the view."
-  (format "Build stats: Success - %d | Failure - %d | Pending - %d"
-          (alist-get 'success stats)
-          (alist-get 'failure stats)
-          (alist-get 'pending stats)))
+  (if stats
+      (format "Build stats: Success - %d | Failure - %d | Pending - %d"
+              (alist-get 'success stats)
+              (alist-get 'failure stats)
+              (alist-get 'pending stats))
+    "Build stats: Unknown"))
 
 (defun buildbot-view-format-build (revision build &optional show-revision)
   "Format a BUILD header associated with REVISION in the view.
@@ -298,16 +307,40 @@ With a non-nil NO-BRANCH, do not show branch info."
     ('log (format "*buildbot log %d*"
                   (alist-get 'logid (alist-get 'log data))))))
 
+(defun buildbot-builders-same-host (host)
+  "Get `buildbot-builders' from a buffer with HOST.
+
+Find the first `buildbot-view-mode' buffer whose `buildbot-host'
+has value HOST and whose `buildbot-builders' is nonnil, and
+return `buildbot-builders' from that buffer."
+  (when-let ((found-buffer
+              (cl-find-if
+               (lambda (buffer)
+                 (with-current-buffer buffer
+                   (and (derived-mode-p 'buildbot-view-mode)
+                        (equal buildbot-host host)
+                        buildbot-builders)))
+               (buffer-list))))
+    (buffer-local-value 'buildbot-builders found-buffer)))
+
 (defun buildbot-view-open (type data &optional force)
   "Open a view of TYPE using DATA.
 
 With a non-nil FORCE, reload the view buffer if exists."
-  (let ((buffer-name (buildbot-view-buffer-name type data)))
+  (let ((buffer-name (buildbot-view-buffer-name type data))
+        (host buildbot-host)
+        (builders buildbot-builders))
     (when (or force (not (get-buffer buffer-name)))
       (with-current-buffer (get-buffer-create buffer-name)
         (buildbot-view-mode)
         (setq buildbot-view-type type
-              buildbot-view-data data)
+              buildbot-view-data data
+              buildbot-host
+              (or host buildbot-default-host)
+              buildbot-builders
+              (or builders
+                  (buildbot-builders-same-host buildbot-host)
+                  (buildbot-get-all-builders)))
         (buildbot-view-update)))
     (switch-to-buffer buffer-name)))
 
