@@ -8,10 +8,16 @@ instance. It supports [[https://docs.buildbot.net/latest/relnotes/0.9.0.html][ne
 older versions (<0.9.0) and shows views for branches, revisions,
 builds, steps, logs and builders.
 
-It has been tested for the following instances:
-- [[https://buildbot.mariadb.org][mariadb]]
+It has been tested for the following instances (the urls are to be
+used as ~buildbot-host~):
+- [[https://buildbot.mariadb.org][mariadb]] (works better with ~(setq buildbot-api-changes-direct-filter t)~)
 - [[https://buildbot.python.org/all][python]]
 - [[https://buildbot.buildbot.net][buildbot]]
+- [[https://buildbot.scummvm.org][scummvm]]
+- [[http://build.sagemath.org][sagemath]]
+- [[https://buildbot.staging.openwrt.org/images][openwrt]]
+- [[https://gkernelci.gentoo.org][gentoo]]
+- [[https://buildbot.libsdl.org][SDL]]
 
 *: The linked release notes describes the significant changes at
 0.9.0.

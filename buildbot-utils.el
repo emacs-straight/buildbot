@@ -97,10 +97,12 @@ With non-nil WITH-HEADER, include the header in the result."
 
 (defun buildbot-format-attr (attr)
   "Format an alist ATTR into a url query string."
-  (string-join (mapcar (lambda (pair)
-                         (format "%s=%s" (car pair) (cdr pair)))
-                       attr)
-               "&"))
+  (string-join
+   (mapcar
+    (lambda (pair)
+      (format "%s=%s" (car pair) (cdr pair)))
+    (seq-filter #'cdr attr))
+   "&"))
 
 (defun buildbot-format-epoch-time (epoch)
   "Format an EPOCH."

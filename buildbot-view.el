@@ -32,10 +32,10 @@
 
 (defvar buildbot-view-header-regex "^\\[.*\\]$"
   "The header regex in a Buildbot buffer.")
-(defvar buildbot-view-branch-change-limit 10)
-(defvar buildbot-view-builder-build-limit 50)
-;; 'revision, 'build, 'step, or 'log
-(defvar-local buildbot-view-type nil)
+(defvar-local buildbot-view-type nil
+  "The type of the Buildbot view.
+
+One of `revision', `build', `step', or `log'.")
 (defvar-local buildbot-view-data nil)
 
 (defvar buildbot-view-mode-map
@@ -45,7 +45,7 @@
     (define-key kmap "f" #'buildbot-view-next-header-same-thing)
     (define-key kmap (kbd "M-p") #'buildbot-view-previous-header)
     (define-key kmap "p" #'buildbot-view-previous-failed-header)
-    (define-key kmap (kbd "b") #'buildbot-view-previous-header-same-thing)
+    (define-key kmap "b" #'buildbot-view-previous-header-same-thing)
     (define-key kmap "g" #'buildbot-view-reload)
     (define-key kmap (kbd "<return>") #'buildbot-view-open-thing-at-point)
     kmap)
@@ -323,13 +323,31 @@ return `buildbot-builders' from that buffer."
                (buffer-list))))
     (buffer-local-value 'buildbot-builders found-buffer)))
 
-(defun buildbot-view-open (type data &optional force)
+(defun buildbot-get-builders-smart (&optional host)
+  "Get builders in a smart way.
+
+If the optional HOST is nil, use the value of the buffer-local
+`buildbot-host', and if the latter is nil, use the value of the
+global `buildbot-default-host'.
+
+First try the buffer-local `buildbot-builders' if the host is the
+same.
+Then try `buildbot-builders' from another buffer with the same host.
+Finally, call `buildbot-get-all-builders' to get the builders."
+  (unless host (setq host (or buildbot-host buildbot-default-host)))
+  (or (when (equal host buildbot-host) buildbot-builders)
+      (buildbot-builders-same-host host)
+      (let ((buildbot-host host)) (buildbot-get-all-builders))))
+
+(defun buildbot-view-open (type data &optional force host)
   "Open a view of TYPE using DATA.
 
-With a non-nil FORCE, reload the view buffer if exists."
-  (let ((buffer-name (buildbot-view-buffer-name type data))
-        (host buildbot-host)
-        (builders buildbot-builders))
+With a non-nil FORCE, reload the view buffer if exists.
+
+With a non-nil HOST, set the `buildbot-host' of the view buffer,
+otherwise pass the value from the current buffer."
+  (unless host (setq host (or buildbot-host buildbot-default-host)))
+  (let ((buffer-name (buildbot-view-buffer-name type data)))
     (when (or force (not (get-buffer buffer-name)))
       (with-current-buffer (get-buffer-create buffer-name)
         (buildbot-view-mode)
@@ -338,9 +356,7 @@ With a non-nil FORCE, reload the view buffer if exists."
               buildbot-host
               (or host buildbot-default-host)
               buildbot-builders
-              (or builders
-                  (buildbot-builders-same-host buildbot-host)
-                  (buildbot-get-all-builders)))
+              (buildbot-get-builders-smart))
         (buildbot-view-update)))
     (switch-to-buffer buffer-name)))
 
@@ -350,28 +366,54 @@ With a non-nil FORCE, reload the view buffer if exists."
   (buildbot-view-update))
 
 ;;;###autoload
-(defun buildbot-revision-open (revision)
-  "Open a REVISION view."
-  (interactive "sRevision (e.g. commit hash): ")
-  (buildbot-view-open 'revision `((revision . ,revision))))
+(defun buildbot-revision-open (&optional read-host)
+  "Open a revision view.
+
+With a nonnil prefix arg READ-HOST, will prompt for the host
+first."
+  (interactive "P")
+  (let ((host (when read-host (read-string "Buildbot host: "))))
+    (buildbot-view-open
+     'revision
+     `((revision . ,(read-string "Revision (e.g. commit hash): ")))
+     nil
+     host)))
 
 ;;;###autoload
-(defun buildbot-branch-open (branch)
-  "Open a BRANCH view."
-  (interactive "sBranch name: ")
-  (buildbot-view-open 'branch `((branch . ,branch))))
+(defun buildbot-branch-open (&optional read-host)
+  "Open a branch view.
+
+With a nonnil prefix arg READ-HOST, will prompt for the host
+first."
+  (interactive "P")
+  (let ((host (when read-host (read-string "Buildbot host: "))))
+    (buildbot-view-open
+     'branch
+     `((branch . ,(read-string "Branch: ")))
+     nil
+     host)))
 
 ;;;###autoload
-(defun buildbot-builder-open (builder-name)
-  "Open a builder view of BUILDER-NAME."
-  (interactive (list (completing-read
-                      "Builder name: "
-                      (mapcar
-                       (lambda (builder) (alist-get 'name builder))
-                       buildbot-builders))))
-  (buildbot-view-open 'builder
-                      (list (cons 'builder
-                                  (buildbot-builder-by-name builder-name)))))
+(defun buildbot-builder-open (read-host)
+  "Open a builder view.
+
+With a nonnil prefix arg READ-HOST, will prompt for the host
+first."
+  (interactive "P")
+  (let* ((host (when read-host (read-string "Buildbot host: ")))
+         (buildbot-builders
+          (buildbot-get-builders-smart host)))
+    (buildbot-view-open
+     'builder
+     `((builder .
+                ,(buildbot-builder-by-name
+                  (completing-read
+                   "Builder name: "
+                   (mapcar
+                    (lambda (builder) (alist-get 'name builder))
+                    buildbot-builders)))))
+     nil
+     host)))
 
 (defun buildbot-view-update ()
   "Refresh a view."
@@ -384,8 +426,7 @@ With a non-nil FORCE, reload the view buffer if exists."
        (insert (buildbot-branch-format
                 (alist-get 'branch buildbot-view-data)
                 (buildbot-get-changes-by-branch
-                 (alist-get 'branch buildbot-view-data)
-                 buildbot-view-branch-change-limit))))
+                 (alist-get 'branch buildbot-view-data)))))
       ('revision
        (let ((revision-and-changes-info
               (buildbot-get-revision-and-changes-info
@@ -398,8 +439,7 @@ With a non-nil FORCE, reload the view buffer if exists."
        (let* ((builder (alist-get 'builder buildbot-view-data))
               (builds
                (buildbot-get-recent-builds-by-builder
-                (alist-get 'builderid builder)
-                buildbot-view-builder-build-limit)))
+                (alist-get 'builderid builder))))
          (insert (buildbot-builder-format builder builds))))
       ('build
        (let ((revision (alist-get 'revision buildbot-view-data)))

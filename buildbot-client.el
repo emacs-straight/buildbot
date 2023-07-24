@@ -37,6 +37,45 @@ Can be generated with `buildbot-get-all-builders'.")
   :group 'buildbot
   :type 'string)
 
+(defcustom buildbot-builder-build-limit 100
+  "The limit in a request to the Build API filtered by builder.
+
+If set to nil, use server default, i.e. do not set limit in
+relevant Builds API requests."
+  :group 'buildbot
+  :type '(choice (const :tag "Server default" nil) natnum))
+
+(defcustom buildbot-branch-changes-limit 10
+  "The limit in a request to the Changes API filtered by branch.
+
+Only relevant when `buildbot-api-changes-direct-filter' is
+non-nil. If set to nil, use server default, i.e. do not set limit
+in relevant Changes API requests."
+  :group 'buildbot
+  :type '(choice (const :tag "Server default" nil) natnum))
+
+(defcustom buildbot-api-changes-limit 300
+  "The limit in a request to the Changes API.
+
+Only relevant when `buildbot-api-changes-direct-filter' is nil.
+If set to nil, use server default, i.e. do not set limit in
+Changes API requests.'"
+  :group 'buildbot
+  :type '(choice (const :tag "Server default" nil) natnum))
+
+(defcustom buildbot-api-changes-direct-filter nil
+  "Method to filter revision or bracnh in the Changes API requests.
+
+If non-nil, filter directly in API request, otherwise call the
+API with a limit, and filter from the response.
+
+Direct filtering is more accurate, but may have extremely high
+latency or may be unsupported in some hosts. Most (all?) hosts
+support indirect filtering, but depending on the limit, it may
+miss some changes associated to the required revision or branch."
+  :group 'buildbot
+  :type 'boolean)
+
 (defun buildbot-api-change (attr)
   "Call the Changes API with ATTR."
   (buildbot-url-fetch-json
@@ -91,12 +130,12 @@ Can be generated with `buildbot-get-all-builders'.")
   (buildbot-url-fetch-raw
    (format "%s/api/v2/logs/%d/raw" buildbot-host logid)))
 
-(defun buildbot-get-recent-builds-by-builder (builder-id limit)
+(defun buildbot-get-recent-builds-by-builder (builder-id)
   "Get LIMIT number of recent builds by the builder with BUILDER-ID."
   (alist-get 'builds
              (buildbot-api-builders-builds
               builder-id
-              `((limit . ,limit)
+              `((limit . ,buildbot-builder-build-limit)
                 (order . "-number")
                 (property . "revision")))))
 
@@ -133,8 +172,17 @@ Can be generated with `buildbot-get-all-builders'.")
 (defun buildbot-get-changes-by-revision (revision)
   "Get the changes from a REVISION."
   (let ((changes
-         (alist-get 'changes
-                    (buildbot-api-change `((revision . ,revision))))))
+         (if buildbot-api-changes-direct-filter
+             (alist-get
+              'changes
+              (buildbot-api-change `((revision . ,revision))))
+           (seq-filter
+            (lambda (change)
+              (equal revision (alist-get 'revision change)))
+            (alist-get
+             'changes
+             (buildbot-api-change `((limit . ,buildbot-api-changes-limit)
+                                    (order . "-changeid"))))))))
     (mapcar
      (lambda (change)
        (if (assq 'builds change)
@@ -153,12 +201,20 @@ Can be generated with `buildbot-get-all-builders'.")
   "Get the steps of a build with BUILDID."
   (alist-get 'steps (buildbot-api-step buildid)))
 
-(defun buildbot-get-changes-by-branch (branch-name limit)
+(defun buildbot-get-changes-by-branch (branch-name)
   "Get LIMIT number of changes of a branch with BRANCH-NAME."
-  (alist-get 'changes
-             (buildbot-api-change
-              (cons `(branch . ,branch-name)
-                    (when limit `((limit . ,limit)))))))
+  (if buildbot-api-changes-direct-filter
+      (alist-get
+       'changes
+       (buildbot-api-change `((branch . ,branch-name)
+                              (limit . ,buildbot-branch-changes-limit))))
+    (seq-filter
+     (lambda (change)
+       (equal branch-name (alist-get 'branch change)))
+     (alist-get
+      'changes
+      (buildbot-api-change `((limit . ,buildbot-api-changes-limit)
+                             (order . "-changeid")))))))
 
 (provide 'buildbot-client)
 ;;; buildbot-client.el ends here
