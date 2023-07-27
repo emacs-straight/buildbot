@@ -48,6 +48,7 @@ One of `revision', `build', `step', or `log'.")
     (define-key kmap "b" #'buildbot-view-previous-header-same-thing)
     (define-key kmap "g" #'buildbot-view-reload)
     (define-key kmap (kbd "<return>") #'buildbot-view-open-thing-at-point)
+    (define-key kmap "w" #'buildbot-view-copy-url)
     kmap)
   "Keymap for `buildbot-view-mode'.")
 
@@ -364,6 +365,35 @@ otherwise pass the value from the current buffer."
   "Reload a view buffer."
   (interactive)
   (buildbot-view-update))
+
+(defun buildbot-view-format-url ()
+  "Format the url of the current view."
+  (unless (derived-mode-p 'buildbot-view-mode)
+    (error "Must be in buildbot mode"))
+  (pcase buildbot-view-type
+    ('branch (format "%s/#grid?branch=%s"
+                     buildbot-host
+                     (alist-get 'branch buildbot-view-data)))
+    ('build
+     (let ((build (alist-get 'build buildbot-view-data)))
+       (format "%s/#/builders/%d/builds/%s"
+               buildbot-host
+               (alist-get 'builderid build)
+               (alist-get 'number build))))
+    ('builder
+     (format "%s/#/builders/%d"
+             buildbot-host
+             (alist-get 'builderid
+                        (alist-get 'builder buildbot-view-data))))
+    (_ (error "Unsupported type for formatting url: %s"
+              buildbot-view-type))))
+
+(defun buildbot-view-copy-url ()
+  "Copy the url of the current view."
+  (interactive)
+  (let ((url (buildbot-view-format-url)))
+    (kill-new url)
+    (message "Copied url: %s" url)))
 
 ;;;###autoload
 (defun buildbot-revision-open (&optional read-host)

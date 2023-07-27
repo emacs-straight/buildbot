@@ -3,7 +3,7 @@
 ;; Author: Yuchen Pei <id@ypei.org>
 ;; Maintainer: Yuchen Pei <id@ypei.org>
 ;; Created: 2023
-;; Version: 0
+;; Version: 0.0.1
 ;; Keywords: buildbot, continuous integration
 ;; Package-Requires: ((emacs "28"))
 ;; Package-Type: multi
