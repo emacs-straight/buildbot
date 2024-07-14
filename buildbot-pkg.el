@@ -1,2 +1,0 @@
-;; Generated package description from buildbot.el  -*- no-byte-compile: t -*-
-(define-package "buildbot" "0.0.1.0.20230726.134747" "A Buildbot client for emacs" '((emacs "28")) :commit "d614eea91ca5717c2b0019dae8c85e6a24873f39" :authors '(("Yuchen Pei" . "id@ypei.org")) :maintainer '("Yuchen Pei" . "id@ypei.org") :keywords '("buildbot" "continuous integration") :url "https://g.ypei.me/buildbot.el.git")
