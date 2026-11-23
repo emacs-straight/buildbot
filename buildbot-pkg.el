@@ -1,2 +1,2 @@
-;; Generated package description from buildbot.el  -*- no-byte-compile: t -*-
-(define-package "buildbot" "0.0.1.0.20230726.134747" "A Buildbot client for emacs" '((emacs "28")) :commit "d614eea91ca5717c2b0019dae8c85e6a24873f39" :authors '(("Yuchen Pei" . "id@ypei.org")) :maintainer '("Yuchen Pei" . "id@ypei.org") :keywords '("buildbot" "continuous integration") :url "https://g.ypei.me/buildbot.el.git")
+;; Generated package description from buildbot.el  -*- mode: lisp-data; no-byte-compile: t; lexical-binding:t -*-
+(define-package "buildbot" "0.0.1.0.20261122.1" "A Buildbot client for emacs" '((emacs "28")) :commit "fb0660ee2e8223be1bbedb591ea1ffa27eedd74d" :authors '(("Yuchen Pei" . "id@ypei.org")) :maintainer '("Yuchen Pei" . "id@ypei.org") :keywords '("buildbot" "continuous integration") :url "https://g.ypei.me/buildbot.el.git")
